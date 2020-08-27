@@ -92,7 +92,7 @@ public class MechanicShop{
 		 */
 		ResultSetMetaData rsmd = rs.getMetaData ();
 		int numCol = rsmd.getColumnCount ();
-		int rowCount = 0;
+		int numOfCustomerRequests = 0;
 		
 		//iterates through the result set and output them to standard out.
 		boolean outputHeader = true;
@@ -107,10 +107,10 @@ public class MechanicShop{
 			for (int i=1; i<=numCol; ++i)
 				System.out.print (rs.getString (i) + "\t");
 			System.out.println ();
-			++rowCount;
+			++numOfCustomerRequests;
 		}//end while
 		stmt.close ();
-		return rowCount;
+		return numOfCustomerRequests;
 	}
 	
 	/**
@@ -135,7 +135,7 @@ public class MechanicShop{
 		*/ 
 		ResultSetMetaData rsmd = rs.getMetaData (); 
 		int numCol = rsmd.getColumnCount (); 
-		int rowCount = 0; 
+		int numOfCustomerRequests = 0; 
 	 
 		//iterates through the result set and saves the data returned by the query. 
 		boolean outputHeader = false;
@@ -165,14 +165,14 @@ public class MechanicShop{
 		//issues the query instruction
 		ResultSet rs = stmt.executeQuery (query);
 
-		int rowCount = 0;
+		int numOfCustomerRequests = 0;
 
 		//iterates through the result set and count nuber of results.
 		if(rs.next()){
-			rowCount++;
+			numOfCustomerRequests++;
 		}//end while
 		stmt.close ();
-		return rowCount;
+		return numOfCustomerRequests;
 	}
 	
 	/**
@@ -293,57 +293,258 @@ public class MechanicShop{
 		// returns only if a correct value is given.
 		do {
 			System.out.print("Please make your choice: ");
-			try { // read the integer, parse it and break.
+			try { 
 				input = Integer.parseInt(in.readLine());
 				break;
 			}catch (Exception e) {
 				System.out.println("Your input is invalid!");
 				continue;
-			}//end try
+			}
 		}while (true);
 		return input;
-	}//end readChoice
-	
-	public static void AddCustomer(MechanicShop esql){//1
-		
 	}
 	
-	public static void AddMechanic(MechanicShop esql){//2
-		
+	public static void AddCustomer(MechanicShop esql){
+		try{
+			String querySize = String.format("SELECT id FROM Customer");
+			List<List<String>> data = esql.executeQueryAndReturnResult(querySize);
+			int newCustomerID = data.size() + 1;
+			System.out.print("Enter new customer's first name: "); String customerFName = in.readLine();
+			System.out.print("Enter new customer's last name: "); String customerLName = in.readLine();
+			System.out.print("Enter new customer's phone number: "); String customerPhone = in.readLine();
+	        System.out.print("Enter new customer's address: "); String customerAddress = in.readLine();
+
+            String query = String.format("INSERT INTO Customer(id, fname, lname, phone, address) VALUES(%d, '%s', '%s', '%s', '%s')", newCustomerID,customerFName,customerLName,customerPhone,customerAddress);
+            esql.executeUpdate(query);
+
+      		}catch(Exception e){ System.err.println (e.getMessage()); }
+	} 
+	
+	public static void AddMechanic(MechanicShop esql){
+		try{
+			String querySize = String.format("SELECT id FROM Mechanic");
+			List<List<String>> data = esql.executeQueryAndReturnResult(querySize);
+			int newmechID = data.size() + 1;
+
+			System.out.print("Enter new mechanic's first name: "); String mechanicFName = in.readLine();
+			System.out.print("Enter new mechanic's last name: "); String mechanicLName = in.readLine();
+			System.out.print("Enter new mechanic's years of experience: "); String yearsExperienceString = in.readLine();
+            int yearsExperience = Integer.parseInt(yearsExperienceString);
+
+			String query = String.format("INSERT INTO mechanic(id, fname, lname, experience) VALUES(%d, '%s', '%s', %d)", newmechID, mechanicFName, mechanicLName, yearsExperience);
+            esql.executeUpdate(query);
+              
+            }catch(Exception e){ System.err.println (e.getMessage()); }
 	}
 	
-	public static void AddCar(MechanicShop esql){//3
-		
+	public static void AddCar(MechanicShop esql){
+		try{
+			System.out.print("Enter new car's VIN: "); String newCarVin = in.readLine();
+			System.out.print("Enter new car's make: "); String carMake = in.readLine();
+			System.out.print("Enter new car's model: "); String carModel = in.readLine();
+			System.out.print("Enter new car's year: "); String carAgeString = in.readLine();		
+			int carAge = Integer.parseInt(carAgeString);
+
+			String query = String.format("INSERT INTO Car(vin, make, model, year) VALUES('%s', '%s', '%s', %d)", newCarVin, carMake, carModel, carAge);
+            esql.executeUpdate(query);
+
+      		}catch(Exception e){ System.err.println (e.getMessage()); }
 	}
 	
-	public static void InsertServiceRequest(MechanicShop esql){//4
-		
+public static void InsertServiceRequest(MechanicShop esql){
+		try{
+			String querySize = String.format("SELECT rid FROM Service_Request");
+			List<List<String>> ledgerOfServiceRequests = esql.executeQueryAndReturnResult(querySize);
+			int newServiceRequest = ledgerOfServiceRequests.size() + 1;
+
+            System.out.print("What is the Customer's Last name?: ") String findCustomerLastName = in.readLine();
+             
+			String query = String.format("SELECT * FROM Customer WHERE lname = '%s'", findCustomerLastName);
+			int numOfCustomerRequests = esql.executeQueryAndPrintResult(query);
+
+			if(!numOfCustomerRequests) {
+				System.out.println("Hmmm, that last name does not belong to a current member, would they like to create a Membership? : ");
+				String customerResponse = in.readLine();
+
+                if (customerResponse.equals("y") || customerResponse.equals("Y") 
+                    || customerResponse.equals("yes") || customerResponse.equals("Yes")) AddCustomer(esql);
+				else { System.out.println("Maybe next time!");}
+			}
+			else {
+				System.out.println("Enter the Member's ID number : "); String currentCustomerIDString = in.readLine();
+				int currentCustomerID = Integer.parseInt(currentCustomerIDString);
+				query = String.format("SELECT Row_Number() OVER ( ORDER BY Owns.car_vin ), Car FROM Customer,Owns,Car WHERE Customer.id = Owns.customer_id AND Car.vin = Owns.car_vin AND Owns.customer_id = '%s'", currentCustomerID);
+				numOfCustomerRequests = esql.executeQueryAndPrintResult(query);
+				System.out.println("Which Member do you have in mind? : ");
+				String whichCustomerString = in.readLine();
+				int whichCustomer = Integer.parseInt(whichCustomerString);
+				
+				if(!whichCustomer) {
+					System.out.print("Enter new car's VIN: "); String newCarVin = in.readLine();
+					System.out.print("Enter new car's make: "); String newCarMake = in.readLine();
+					System.out.print("Enter new car's model: "); String newCarModel = in.readLine();
+					System.out.print("Enter new car's year: "); String newCarAgeString = in.readLine();
+					int newCarAge = Integer.parseInt(newCarAgeString);
+
+					query = String.format("INSERT INTO Car(vin, make, model, year) VALUES('%s', '%s', '%s', %d)", newCarVin, newCarMake, newCarModel, newCarAge);
+					esql.executeUpdate(query);
+					
+					querySize = String.format("SELECT ownership_id FROM Owns");
+					List<List<String>> numCarsOwned = esql.executeQueryAndReturnResult(querySize);
+					int newCarOwnedID = numCarsOwned.size() + 1;
+					query = String.format("INSERT INTO Owns(ownership_id, customer_id, car_vin) VALUES(%d, %d, '%s')", newCarOwnedID, currentCustomerID, newCarVin);
+					esql.executeUpdate(query);
+					System.out.print("This member's new car has been added to the database!\n");
+
+					System.out.print("Please Enter the current mileage of the new car: "); String newCarMileageString = in.readLine();
+					int newCarMileage = Integer.parseInt(newCarMileageString);
+
+					System.out.print("If the customer had any complaints about today's service, please describe here: "); String newServiceComplaint = in.readLine();
+					
+					query = String.format("INSERT INTO Service_Request(rid, customer_id, car_vin, date, odometer, complain) VALUES(%d, %d, '%s', CURRENT_DATE, %d, '%s')", newServiceRequest, currentCustomerID, newCarVin, newCarMileage, newServiceComplaint);
+					esql.executeUpdate(query);
+					System.out.print("This service request identification number will be given shortly. Thank you. : ");
+					System.out.print(newServiceRequest);
+					System.out.printf("%n"); 
+				}
+				else {
+
+					query = String.format("SELECT test FROM (Select Row_Number() OVER ( ORDER BY Owns.car_vin ) as rownumber, Car.vin, Car.make, Car.model, Car.year FROM Customer, Owns, Car WHERE Customer.id = Owns.customer_id AND Car.vin = Owns.car_vin AND Owns.customer_id = '%s') AS test WHERE rownumber = %d ", currentCustomerID, whichCustomer);
+					List<List<String>> thisCustomersCars  = esql.executeQueryAndReturnResult(query);
+					
+					String newCustomerCar = result.get(0).get(0);
+					System.out.println(newCustomerCar);
+					String[] carFormatting = newCustomerCar.split(",");
+					String newCarVin2 = carFormatting[1];
+					
+					System.out.print("Please enter this car's mileage : "); String newCarMileageString2 = in.readLine();
+					int newCarMileage2 = Integer.parseInt(newCarMileageString2);
+
+					System.out.print("If the customer had any complaints about today's service, please describe here: "); String newServiceComplaint2 = in.readLine();
+
+					query = String.format("INSERT INTO Service_Request(rid, customer_id, car_vin, date, odometer, complain) VALUES(%d, %d, '%s', CURRENT_DATE, %d, '%s')", newServiceRequest, currentCustomerID, newCarVin2, newCarMileage2, newServiceComplaint2);
+					esql.executeUpdate(query);
+					System.out.print("This service request identification number will be given shortly. Thank you. : ");
+					System.out.print(newServiceRequest);
+					System.out.printf("%n"); 
+
+				}
+
+			}
+
+      		}catch(Exception e){ System.err.println (e.getMessage()); }
+
+	}
+
+public static void CloseServiceRequest(MechanicShop esql) throws Exception{
+	try{
+			String numClosedString = String.format("SELECT wid FROM Closed_Request");
+			List<List<String>> numRequests = esql.executeQueryAndReturnResult(querySize);
+			int newClosedRequestID = numRequests.size() + 1;
+
+         	System.out.println("Please Enter the the Service Request ID for this Member's Car: "); String lookupRequestIDString = in.readLine();
+			int lookupRequestID = Integer.parseInt(lookupRequestIDString);
+
+			System.out.println("Please Enter your Mechanic's Union ID Number: "); String mechIDString = in.readLine();
+			int mechID = Integer.parseInt(mechIDString);
+
+			System.out.println("Please Enter any suggestions or comments pertaining to this Service Request: "); String newComment = in.readLine();
+			System.out.println("Please enter the total cost of the Service Request, ready to be billed to the Member: "); String newServiceCostString = in.readLine();
+			int newServiceCost = Integer.parseInt(newServiceCostString);
+
+			String query = String.format("SELECT * FROM Mechanic WHERE Mechanic.id = %d", mechID);
+			int numRows = esql.executeQuery(query);
+			
+			if(!numRows) {
+				System.out.println("Please Enter a valid Mechanic Identification Number: \n");
+				return;
+			}
+			
+			query = String.format("SELECT * FROM Service_Request WHERE Service_Request.rid = %d", lookupRequestID);
+			numRows = esql.executeQuery(query);
+
+			if(!numRows) {
+				System.out.println("Please Enter a valid Service Request Identification Number: \n");
+				return;
+			}
+
+			query = String.format("SELECT * FROM Service_Request WHERE Service_Request.rid = %d AND Service_Request.date <= CURRENT_DATE", lookupRequestID);
+			numRows = esql.executeQuery(query);
+
+			if(!numRows) {
+				System.out.println("Please enter a valid service request date: \n");
+				return;
+			}
+
+			query = String.format("INSERT INTO Closed_Request(wid, rid, mid, date, comment, bill) VALUES(%d, %d, %d, CURRENT_DATE, '%s', %d)", 
+										newClosedRequestID, lookupRequestID, mechID, newComment, newServiceCost);
+			esql.executeUpdate(query);
+
+      		}catch(Exception e){ System.err.println (e.getMessage()); }
+    }
+	
+	public static void ListCustomersWithBillLessThan100(MechanicShop esql){
+		try{
+				 String query = "SELECT Customer.fname, Customer.lname, Closed_Request.bill, Service_Request.date, Closed_Request.comment FROM Customer, Closed_Request, Service_Request 
+				 					WHERE Closed_Request.bill < 100 AND Closed_Request.rid = Service_Request.rid AND Service_Request.customer_id = Customer.id";
+         		int numCustomersLess100 = esql.executeQueryAndPrintResult(query);
+				System.out.println ("Number of Customers with bills totaling less than $100: " + numCustomersLess100);
+				 
+      		}catch(Exception e){ System.err.println (e.getMessage()); }
+	}
+
+	
+	public static void ListCustomersWithMoreThan20Cars(MechanicShop esql){
+		try{
+				String query = "SELECT allCars.fname, allCars.lname, allCars.numCars FROM (SELECT Owns.customer_id, Customer.fname, Customer.lname, COUNT(*) numCars FROM Owns,Customer 
+								WHERE Customer.id = Owns.customer_id GROUP BY Owns.customer_id, Customer.fname, Customer.lname) AS allCars WHERE numCars > 20";
+				int numCustomersMore20 = esql.executeQueryAndPrintResult(query);
+				System.out.println ("Number of Customers with more than 20 cars: " + numCustomersMore20);
+		 
+			}catch(Exception e){ System.err.println (e.getMessage()); }
+
 	}
 	
-	public static void CloseServiceRequest(MechanicShop esql) throws Exception{//5
-		
+	public static void ListCarsBefore1995With50000Milles(MechanicShop esql){
+		try{
+				 String query = "SELECT Car.make, Car.model, Car.year, Service_Request.odometer FROM Car,Service_Request 
+				 					WHERE Service_Request.car_vin = Car.vin AND Service_Request.odometer < 50000 AND Car.year < 1995";
+         		int numCarsBefore1995 = esql.executeQueryAndPrintResult(query);
+				 System.out.println ("Number of Cars manufactured before 1995 with more than 50,000 miles: " + numCarsBefore1995);
+				 
+      		}catch(Exception e){ System.err.println (e.getMessage()); }
 	}
 	
-	public static void ListCustomersWithBillLessThan100(MechanicShop esql){//6
-		
+	public static void ListKCarsWithTheMostServices(MechanicShop esql){
+	try{
+		System.out.print("How many service requests will you consider for this criteria?: "); String numServRequestsString = in.readLine();
+		int numServRequests = Integer.parseInt(numServRequestsString);
+	
+		System.out.print("How many cars would you like listed, for this criteria?: "); String numCarsListedString = in.readLine();
+		int numCarsListed = Integer.parseInt(numCarsListedString);
+
+		String query = String.format("SELECT Car.make, Car.model, Car.vin, COUNT(Service_Request) as cnt FROM Car,Service_Request 
+										WHERE Service_Request.rid NOT IN (SELECT Service_Request.rid FROM Closed_Request,Service_Request WHERE Service_Request.rid = Closed_Request.rid) AND Car.vin = Service_Request.car_vin 
+										GROUP BY Car.make,Car.model,Car.vin HAVING COUNT(*) = %d ORDER BY cnt DESC LIMIT %d",numServRequests,numCarsListed);
+
+		int totalValidRequests = esql.executeQueryAndPrintResult(query);
+		 System.out.println ("The number of cars that fit this criteria: " + totalValidRequests);
+		 
+	}catch(Exception e){ System.err.println (e.getMessage()); }
+
 	}
 	
-	public static void ListCustomersWithMoreThan20Cars(MechanicShop esql){//7
-		
-	}
+	public static void ListCustomersInDescendingOrderOfTheirTotalBill(MechanicShop esql){
+	try{
+		String query = "SELECT A.fname,A.lname, SUM(Closed_Request.bill) total_bill FROM (SELECT Customer.fname, Customer.lname, Customer.id, Closed_Request.bill, Closed_Request.rid FROM Customer, Closed_Request, Service_Request 
+						WHERE Closed_Request.rid = Service_Request.rid AND Customer.id = Service_Request.customer_id) AS A LEFT JOIN Closed_Request ON A.rid = Closed_Request.rid GROUP BY A.fname,A.lname,A.id ORDER BY total_bill DESC";
+
+		int numCustomers = esql.executeQueryAndPrintResult(query);
+		 System.out.println ("The number of customers who fit this criteria: " + numCustomers);
+		 
+	}catch(Exception e){ System.err.println (e.getMessage()); }
+
 	
-	public static void ListCarsBefore1995With50000Milles(MechanicShop esql){//8
-		
-	}
-	
-	public static void ListKCarsWithTheMostServices(MechanicShop esql){//9
-		//
-		
-	}
-	
-	public static void ListCustomersInDescendingOrderOfTheirTotalBill(MechanicShop esql){//9
-		//
-		
 	}
 	
 }
